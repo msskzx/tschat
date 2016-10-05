@@ -89,7 +89,7 @@ public class Client extends JFrame {
 			} catch (ClassNotFoundException e) {
 				showMessage("There is a problem with the message\n");
 			}
-		while (!message.equals("BYE") && !message.equals("QUIT"));
+		while (true);
 	}
 
 	private void close() {
