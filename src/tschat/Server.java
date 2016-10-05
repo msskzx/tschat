@@ -1,7 +1,6 @@
 package tschat;
 
 import java.awt.BorderLayout;
-import java.awt.Event;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.EOFException;
@@ -17,6 +16,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
+@SuppressWarnings("serial")
 public class Server extends JFrame {
 
 	private JTextField userText;
@@ -31,38 +31,35 @@ public class Server extends JFrame {
 		userText = new JTextField();
 		userText.setEditable(false);
 		userText.addActionListener(new ActionListener() {
-
 			// after typing then hitting Enter
 			public void actionPerformed(ActionEvent e) {
-				sendMessage(e.getActionCommand() + "\n", true); // e.getActionCommand()
-																// the
-																// Text that is
-																// written in
-																// the textField
+				sendMessage(e.getActionCommand());
+				// e.getActionCommand() is the text in the textField
 				userText.setText("");
 			}
 		});
 
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		add(userText, BorderLayout.NORTH);
 		chatWindow = new JTextArea();
 		add(new JScrollPane(chatWindow));
-		setSize(300, 150);
+		setSize(300, 300);
 		setVisible(true);
 	}
 
 	// set up and run the server
 	public void startRunning() {
 		try {
-			server = new ServerSocket(6000, 100); // 6789 is the port number,100
-													// is how many people can
-													// wait to connect
+			// The maximum queue length for incoming connection indications (a
+			// request to connect) is set to 50
+			server = new ServerSocket(6000);
 			while (true) {
 				try {
 					waitForConnection();
 					setupStreams();
 					whileChatting();
 				} catch (EOFException eofException) {
-					showMessage("Server ended the connection! \n");
+					showMessage("Server ended the connection!\n");
 				} finally {
 					close();
 				}
@@ -73,9 +70,9 @@ public class Server extends JFrame {
 	}
 
 	private void waitForConnection() throws IOException {
-		showMessage("Waiting for someone to connect ... \n");
+		showMessage("Waiting for someone to connect...\n");
 		conncetion = server.accept();
-		showMessage("Now connected to " + conncetion.getInetAddress().getHostName() + "\n");
+		showMessage("Connected to " + conncetion.getInetAddress().getHostName() + "\n");
 	}
 
 	// get stream to send and receive data
@@ -83,29 +80,28 @@ public class Server extends JFrame {
 		output = new ObjectOutputStream(conncetion.getOutputStream());
 		output.flush();
 		input = new ObjectInputStream(conncetion.getInputStream());
-		showMessage("Streams are now setup ! \n");
+		showMessage("Streams are now setup!\n");
 	}
 
 	// during the chat conversation
 	private void whileChatting() throws IOException {
-		String message = "You are now connected! \n";
-		sendMessage(message + "\n", false);
+		String message = "You are now connected!\n---\n";
+		showMessage(message);
 		ableToType(true);
 		do {
 			// have a conversation
-
 			try {
 				message = (String) input.readObject();
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
-			showMessage("Client says : " + message + "\n");
+			showMessage("Client says: " + message + "\n");
 		} while (!message.equals("BYE") && !message.equals("QUIT"));
 	}
 
-	// close streams ans sockets after you are done chatting
+	// close streams and sockets after you are done
 	private void close() {
-		showMessage("Closing connections... \n");
+		showMessage("Closing connections...\n---\n");
 		ableToType(false);
 		try {
 			output.close();
@@ -116,17 +112,14 @@ public class Server extends JFrame {
 		}
 	}
 
-	// send a message to client
-	private void sendMessage(String message, boolean isCon) {
+	// send a message to the client
+	private void sendMessage(String message) {
 		try {
 			output.writeObject(message);
 			output.flush();
-			if (isCon)
-				showMessage("Server says: " + message);
-			else
-				showMessage(message);
+			showMessage("Server says: " + message + "\n");
 		} catch (IOException e) {
-			chatWindow.append("Can't Sent this Message\n");
+			chatWindow.append("Can't Send this Message\n");
 		}
 	}
 
