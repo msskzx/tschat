@@ -46,30 +46,29 @@ public class ServerRunnable implements Runnable {
 		}
 	}
 
-	// get stream to send and receive data
 	private void setupStreams() throws IOException {
 		output = new ObjectOutputStream(conncetion.getOutputStream());
 		output.flush();
 		input = new ObjectInputStream(conncetion.getInputStream());
 	}
 
-	// during the chat conversation
 	private void whileChatting() throws IOException {
 		String message = "\nYou are now connected!\n---\n";
 		joinResponse();
-		sendMessage(message + "Please Enter Destination User name in the first Text field\n"
-				+ "Please Enter Your Messege in the Second Text field.\n---\n");
+		sendMessage(message + "Enter username of the person you would to chat with in the first text field\n"
+				+ "and your messege in the second text field.\n---\n");
 		do {
-			// have a conversation
 			try {
 				String encodedMessage = (String) input.readObject();
-				if (getMemberList(encodedMessage))
-					continue;
 
 				message = getMessage(encodedMessage);
+
+				if (getMemberList(message))
+					continue;
+
 				String destination = getDestination(encodedMessage);
 				String source = getSource(encodedMessage);
-				int TTL = getTTL(encodedMessage);
+				getTTL(encodedMessage);
 
 				ServerRunnable destinationServerRunnable = null;
 				ServerRunnable sourceServerRunnable = null;
@@ -86,15 +85,15 @@ public class ServerRunnable implements Runnable {
 						sourceServerRunnable = serverRunnable;
 
 				if (destinationServerRunnable != null) {
-					String mess = source + " says" + ": " + message;
-					destinationServerRunnable.output.writeObject(mess);
-					sourceServerRunnable.output.writeObject(mess);
+					String s = source + " says" + ": " + message;
+					destinationServerRunnable.output.writeObject(s);
+					sourceServerRunnable.output.writeObject(s);
+					System.out.println(s + "\n");
 				} else
 					sendMessage("Destination Username : " + destination + " doesn't Exist.");
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
-			System.out.println("Client says: " + message + "\n");
 		} while (!message.equals("BYE") && !message.equals("QUIT"));
 	}
 
@@ -154,7 +153,6 @@ public class ServerRunnable implements Runnable {
 	}
 
 	private void joinResponse() {
-		ArrayList<ServerRunnable> serverRunnables = Server.serverRunnables;
 		String message = "";
 		while (true) {
 			try {
@@ -164,14 +162,19 @@ public class ServerRunnable implements Runnable {
 					e.printStackTrace();
 				}
 				boolean found = false;
-				for (ServerRunnable serverRunnable : serverRunnables)
-					if (serverRunnable.clientName != null && serverRunnable != this
-							&& serverRunnable.clientName.equals(message))
-						found = true;
-				if (!found) {
-					clientName = message;
-					sendMessage("Username accepted!!");
-					break;
+				ArrayList<ServerRunnable> serverRunnables = Server.serverRunnables;
+				synchronized (serverRunnables) {
+					for (ServerRunnable serverRunnable : serverRunnables)
+						if (serverRunnable.clientName != null && serverRunnable != this
+								&& serverRunnable.clientName.equals(message)) {
+							found = true;
+							break;
+						}
+					if (!found) {
+						clientName = message;
+						sendMessage("Username accepted!!");
+						break;
+					}
 				}
 				sendMessage("Username already exists , Please choose another name.\n");
 			} catch (ClassNotFoundException e) {
@@ -181,7 +184,6 @@ public class ServerRunnable implements Runnable {
 		}
 	}
 
-	// close streams and sockets after you are done
 	private void close() {
 		System.out.println("Closing connections...\n---\n");
 		try {
@@ -208,7 +210,6 @@ public class ServerRunnable implements Runnable {
 		return false;
 	}
 
-	// send a message to the client
 	public void sendMessage(String message) {
 		try {
 			output.writeObject(message);

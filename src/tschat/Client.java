@@ -43,7 +43,7 @@ public class Client extends JFrame {
 	 * @param  host IP address of the server
 	 */
 	public Client(String host) {
-		super("Client's Window");
+		super("Chat");
 		serverIP = host;
 
 		userText = new JTextField();
@@ -132,7 +132,7 @@ public class Client extends JFrame {
 			setupUsername();
 			whileChatting();
 		} catch (EOFException e) {
-			showMessage("Client Terminated Connection\n");
+			showMessage("Client terminated connection\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
@@ -149,7 +149,9 @@ public class Client extends JFrame {
 		String ob = "";
 		try {
 			do {
-				String s = JOptionPane.showInputDialog("Choose Username");
+				String s = JOptionPane.showInputDialog("Choose a username");
+				if(s==null)
+					System.exit(0);
 				if (!valid(s)) {
 					showMessage("You can use only letters[A - Z].\n");
 					continue;
@@ -162,7 +164,7 @@ public class Client extends JFrame {
 		} catch (ClassNotFoundException | IOException e) {
 			e.printStackTrace();
 		}
-		this.setTitle(chat.source);
+		this.setTitle("Chat | " + chat.source);
 	}
 
 	private boolean valid(String userName) {
@@ -231,7 +233,7 @@ public class Client extends JFrame {
 
 	private void getMemberList() {
 		try {
-			String message = "\\getMemberList";
+			String message = "$$$\\getMemberList";
 			output.writeObject(message);
 		} catch (IOException e1) {
 			e1.printStackTrace();
