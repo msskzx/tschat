@@ -17,6 +17,7 @@ public class ServerRunnable implements Runnable {
 
 	public ServerRunnable(Socket connection) {
 		this.conncetion = connection;
+		clientName = "192595315646546256165465";
 	}
 
 	public void run() {
@@ -72,9 +73,6 @@ public class ServerRunnable implements Runnable {
 
 				ServerRunnable destinationServerRunnable = null;
 				ServerRunnable sourceServerRunnable = null;
-
-				System.out.println(source);
-				System.out.println(destination);
 
 				for (ServerRunnable serverRunnable : Server.serverRunnables)
 					if (serverRunnable.clientName.equals(destination))
@@ -139,6 +137,7 @@ public class ServerRunnable implements Runnable {
 	}
 
 	private static String getMessage(String s) {
+		System.out.println(s);
 		int i = 0;
 		while (s.charAt(i) != '$')
 			i++;
@@ -201,7 +200,10 @@ public class ServerRunnable implements Runnable {
 				sendMessage("Active users:");
 				for (ServerRunnable x : Server.serverRunnables)
 					if (x != this)
-						sendMessage(" - " + x.clientName);
+						if (valid(x.clientName))
+							sendMessage(" - " + x.clientName);
+						else
+							sendMessage(" - connecting this user...");
 			} else
 				sendMessage("No online users but you");
 
@@ -216,6 +218,13 @@ public class ServerRunnable implements Runnable {
 			output.flush();
 		} catch (IOException e) {
 		}
+	}
+
+	private boolean valid(String userName) {
+		for (int i = 0; i < userName.length(); ++i)
+			if (!Character.isAlphabetic(userName.charAt(i)))
+				return false;
+		return true;
 	}
 
 }
