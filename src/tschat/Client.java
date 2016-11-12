@@ -40,18 +40,16 @@ public class Client extends JFrame {
 	private Chat chat;
 
 	/**
-	 * @param  host IP address of the server
+	 * @param host IP address of the server
 	 */
 	public Client(String host) {
 		super("Chat");
 		serverIP = host;
 
 		userText = new JTextField();
-		userText.setEditable(false);
 		userText.setBackground(new Color(230, 230, 250));
 
 		destinationName = new JTextField();
-		destinationName.setEditable(false);
 		destinationName.setBackground(new Color(188, 210, 238));
 
 		chat = new Chat();
@@ -62,22 +60,13 @@ public class Client extends JFrame {
 		JLabel messageLabel = new JLabel("Message: ");
 		messageLabel.setForeground(new Color(204, 51, 0));
 
-		destinationName.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent event) {
-				message = event.getActionCommand();
-				chat.destination = message;
-				destinationName.setText("");
-			}
-		});
-
 		userText.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
-				message = event.getActionCommand();
-				chat.message = message;
+				chat.destination = destinationName.getText();
+				chat.message = event.getActionCommand();
 				userText.setText("");
 				try {
 					output.writeObject(encode(chat));
-					chat.destination = null;
 					chat.TTL = 0;
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -150,7 +139,7 @@ public class Client extends JFrame {
 		try {
 			do {
 				String s = JOptionPane.showInputDialog("Choose a username");
-				if(s==null)
+				if (s == null)
 					System.exit(0);
 				if (!valid(s)) {
 					showMessage("You can use only letters[A - Z].\n");
@@ -188,7 +177,6 @@ public class Client extends JFrame {
 	}
 
 	private void whileChatting() throws IOException {
-		ableToType(true);
 		do
 			try {
 				message = (String) input.readObject();
@@ -202,13 +190,14 @@ public class Client extends JFrame {
 
 	private void close() {
 		showMessage("Closing connections...\n---\n");
-		ableToType(false);
 		try {
 			output.close();
 			input.close();
 			connection.close();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			System.exit(0);
 		}
 	}
 
@@ -217,16 +206,6 @@ public class Client extends JFrame {
 
 			public void run() {
 				chatWindow.append(message);
-			}
-		});
-	}
-
-	private void ableToType(final boolean flag) {
-		SwingUtilities.invokeLater(new Runnable() {
-
-			public void run() {
-				userText.setEditable(flag);
-				destinationName.setEditable(flag);
 			}
 		});
 	}
