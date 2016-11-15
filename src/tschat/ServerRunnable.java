@@ -14,9 +14,11 @@ public class ServerRunnable implements Runnable {
 	private ObjectInputStream input;
 	private Socket conncetion;
 	private String clientName;
+	private Server server;
 
-	public ServerRunnable(Socket connection) {
+	public ServerRunnable(Socket connection, Server server) {
 		this.conncetion = connection;
+		this.server = server;
 		clientName = "192595315646546256165465";
 	}
 
@@ -39,7 +41,7 @@ public class ServerRunnable implements Runnable {
 	}
 
 	private void removeUser() {
-		Iterator<ServerRunnable> iterator = Server.serverRunnables.iterator();
+		Iterator<ServerRunnable> iterator = server.getServerRunnables().iterator();
 		while (iterator.hasNext()) {
 			ServerRunnable x = iterator.next();
 			if (x.clientName != null && x.clientName.equals(clientName))
@@ -74,11 +76,11 @@ public class ServerRunnable implements Runnable {
 				ServerRunnable destinationServerRunnable = null;
 				ServerRunnable sourceServerRunnable = null;
 
-				for (ServerRunnable serverRunnable : Server.serverRunnables)
+				for (ServerRunnable serverRunnable : server.getServerRunnables())
 					if (serverRunnable.clientName.equals(destination))
 						destinationServerRunnable = serverRunnable;
 
-				for (ServerRunnable serverRunnable : Server.serverRunnables)
+				for (ServerRunnable serverRunnable : server.getServerRunnables())
 					if (serverRunnable.clientName.equals(source))
 						sourceServerRunnable = serverRunnable;
 
@@ -88,7 +90,7 @@ public class ServerRunnable implements Runnable {
 					sourceServerRunnable.output.writeObject(s);
 					System.out.println(s + "\n");
 				} else
-					sendMessage("Destination Username : " + destination + " doesn't Exist.");
+					sendMessage("Destination Username: " + destination + " doesn't Exist.");
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
@@ -161,7 +163,7 @@ public class ServerRunnable implements Runnable {
 					e.printStackTrace();
 				}
 				boolean found = false;
-				ArrayList<ServerRunnable> serverRunnables = Server.serverRunnables;
+				ArrayList<ServerRunnable> serverRunnables = server.getServerRunnables();
 				synchronized (serverRunnables) {
 					for (ServerRunnable serverRunnable : serverRunnables)
 						if (serverRunnable.clientName != null && serverRunnable != this
@@ -195,21 +197,30 @@ public class ServerRunnable implements Runnable {
 	}
 
 	boolean getMemberList(String message) {
-		if (message.equals("\\getMemberList")) {
-			if (Server.serverRunnables.size() > 1) {
-				sendMessage("Active users:");
-				for (ServerRunnable x : Server.serverRunnables)
-					if (x != this)
-						if (valid(x.clientName))
-							sendMessage(" - " + x.clientName);
-						else
-							sendMessage(" - connecting this user...");
-			} else
-				sendMessage("No online users but you");
-
+		if (message.equals("\\getAllMembers")) {
+			sendMessage(getMemberListThis() + server.getMemberList());
+		} else if (message.equals("\\getMemberListOfMyServer")) {
+			sendMessage(getMemberListThis());
 			return true;
+		} else if (message.equals("\\getMemberListOfOtherServer")) {
+			sendMessage(server.getMemberList());
 		}
 		return false;
+	}
+
+	String getMemberListThis() {
+		String members = "";
+		if (server.getServerRunnables().size() > 1) {
+			sendMessage("Active users:");
+			for (ServerRunnable x : server.getServerRunnables())
+				if (x != this)
+					if (valid(x.clientName))
+						members += (" - " + x.clientName);
+					else
+						sendMessage(" - connecting this user...");
+		} else
+			sendMessage("No online users but you");
+		return members;
 	}
 
 	public void sendMessage(String message) {
@@ -225,6 +236,10 @@ public class ServerRunnable implements Runnable {
 			if (!Character.isAlphabetic(userName.charAt(i)))
 				return false;
 		return true;
+	}
+
+	public String getClientName() {
+		return clientName;
 	}
 
 }
