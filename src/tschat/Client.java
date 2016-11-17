@@ -22,8 +22,6 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-import tschat.WindowDestroyer;
-
 @SuppressWarnings("serial")
 public class Client extends JFrame {
 
@@ -146,7 +144,7 @@ public class Client extends JFrame {
 		setVisible(true);
 	}
 
-	public void startRunning() {
+	public void start() {
 		try {
 			connectToServer();
 			setupStreams();
@@ -196,7 +194,7 @@ public class Client extends JFrame {
 	}
 
 	private void connectToServer() throws IOException {
-		showMessage("Attempting connection...\n");
+		showMessage("Trying to connect...\n");
 		connection = new Socket(InetAddress.getByName(serverIP), port);
 		port = port == 6000 ? 6001 : 6000;
 		showMessage("Connected to " + connection.getInetAddress().getHostName() + "\n");
@@ -253,7 +251,6 @@ public class Client extends JFrame {
 	}
 	
 	public static void main(String[] args) {
-		Client client = new Client("127.0.0.1" , 6000);
-		client.startRunning();
+		new Client("127.0.0.1" , 6000).start();
 	}
 }

@@ -1,6 +1,6 @@
 package tschat;
 
-public class Server2 {
+public class ServerTest {
 	public static void main(String[] args) {
 		new Server(6001);
 	}
