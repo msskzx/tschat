@@ -8,6 +8,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import javax.swing.JOptionPane;
+
 public class ServerRunnable implements Runnable {
 
 	private ObjectOutputStream output;
@@ -63,7 +65,6 @@ public class ServerRunnable implements Runnable {
 		do {
 			try {
 				String encodedMessage = (String) input.readObject();
-
 				message = getMessage(encodedMessage);
 
 				if (getMemberList(message))
@@ -123,6 +124,7 @@ public class ServerRunnable implements Runnable {
 
 	private static int getTTL(String s) {
 		StringBuilder sb = new StringBuilder();
+		sb.append("3");
 		int i = 0;
 		while (s.charAt(i) != '$')
 			i++;
@@ -198,12 +200,14 @@ public class ServerRunnable implements Runnable {
 
 	boolean getMemberList(String message) {
 		if (message.equals("\\getAllMembers")) {
-			sendMessage(getMemberListThis() + server.getMemberList());
+			sendMessage(getMemberListThis() + server.thread1.getMemberList());
+			return true;
 		} else if (message.equals("\\getMemberListOfMyServer")) {
 			sendMessage(getMemberListThis());
 			return true;
 		} else if (message.equals("\\getMemberListOfOtherServer")) {
-			sendMessage(server.getMemberList());
+			sendMessage(server.getThread1().getMemberList());
+			return true;
 		}
 		return false;
 	}

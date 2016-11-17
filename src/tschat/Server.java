@@ -9,6 +9,9 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
 public class Server {
 
 	private ServerSocket server;
@@ -17,10 +20,14 @@ public class Server {
 	private Socket connection;
 	private ArrayList<ServerRunnable> serverRunnables;
 	private int port;
+	private String cmd;
+	private String message;
+	Thread thread1, thread2;
 
 	public Server(int port) {
 		serverRunnables = new ArrayList<>();
 		this.port = port;
+		message = "";
 		try {
 			// The maximum queue length for incoming connection indications (a
 			// request to connect) is set to 50
@@ -31,12 +38,59 @@ public class Server {
 				waitingForServer();
 			else
 				connectToServer(6000);
-			new Thread(new Runnable() {
+			thread1 = new Thread(new Runnable() {
 				@Override
 				public void run() {
 					chatWithServer();
+
 				}
-			}).start();
+
+				private void chatWithServer() {
+					while (true)
+						try {
+							output.writeObject(cmd);
+							message = (String) input.readObject();
+							if (message != null) {
+								sendMemberList(message);
+							}
+						} catch (IOException e) {
+							e.printStackTrace();
+						} catch (ClassNotFoundException e) {
+						}
+				}
+
+				String getMemberList() {
+					// cmd = "\\getMemberListOfMyServer";
+					// message = "";
+					try {
+						output.writeObject("\\getMemberListOfMyServer");
+						output.flush();
+						String inp = null;
+						inp = (String) input.readObject();
+						return inp;
+
+					} catch (Exception e) {
+					}
+					return "";
+				}
+
+				void sendMemberList(String message) {
+					if (message == null)
+						return;
+					if (message.equals("\\getMemberListOfMyServer")) {
+						String members = "";
+						for (ServerRunnable x : serverRunnables)
+							members += (" - " + x.getClientName());
+						try {
+							output.writeObject(members);
+							output.flush();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			});
+			thread1.start();
 
 			new Thread(new Runnable() {
 				@Override
@@ -96,57 +150,9 @@ public class Server {
 	public ArrayList<ServerRunnable> getServerRunnables() {
 		return serverRunnables;
 	}
-
-	String getMemberList() {
-		try {
-			output.writeObject("\\getMemberListOfMyServer");
-			String inp = null;
-			do {
-				try {
-					inp = (String) input.readObject();
-				} catch (ClassNotFoundException e) {
-					e.printStackTrace();
-				}
-			} while (inp == null);
-			return inp;
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return "";
-	}
-
-	void sendMemberList(String message) {
-		if (message == null)
-			return;
-
-		if (message.equals("\\getMemberListOfMyServer")) {
-			String members = "";
-			for (ServerRunnable x : serverRunnables)
-				members += (" - " + x.getClientName());
-			try {
-				output.writeObject(members);
-				output.flush();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	private void chatWithServer() {
-		do
-			try {
-				String message;
-				try {
-					message = (String) input.readObject();
-					if (message != null && !message.equals(""))
-						sendMemberList(message);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} catch (ClassNotFoundException e) {
-			}
-		while (true);
+	
+	public Thread getThread1() {
+		return thread1;
 	}
 
 	public static void main(String[] args) {
