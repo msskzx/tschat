@@ -12,12 +12,12 @@ public class ServerRunnable implements Runnable {
 
 	private ObjectOutputStream output;
 	private ObjectInputStream input;
-	private Socket conncetion;
+	private Socket connection;
 	private String clientName;
 	private Server server;
 
 	public ServerRunnable(Socket connection, Server server) {
-		this.conncetion = connection;
+		this.connection = connection;
 		this.server = server;
 		clientName = "192595315646546256165465";
 	}
@@ -50,9 +50,9 @@ public class ServerRunnable implements Runnable {
 	}
 
 	private void setupStreams() throws IOException {
-		output = new ObjectOutputStream(conncetion.getOutputStream());
+		output = new ObjectOutputStream(connection.getOutputStream());
 		output.flush();
-		input = new ObjectInputStream(conncetion.getInputStream());
+		input = new ObjectInputStream(connection.getInputStream());
 	}
 
 	private void whileChatting() throws IOException {
@@ -89,7 +89,7 @@ public class ServerRunnable implements Runnable {
 					sourceServerRunnable.output.writeObject(s);
 					System.out.println(s + "\n");
 				} else
-					sendMessage("Destination Username: " + destination + " doesn't Exist.");
+					sendMessage("Destination username, " + destination + ", doesn't Exist.");
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
@@ -190,7 +190,7 @@ public class ServerRunnable implements Runnable {
 		try {
 			output.close();
 			input.close();
-			conncetion.close();
+			connection.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -198,7 +198,7 @@ public class ServerRunnable implements Runnable {
 
 	boolean getMemberList(String message) {
 		if (message.equals("\\getAllMembers")) {
-			sendMessage(getMemberListThis() + server.getSpecialServer().getMemberList());
+			sendMessage(getMemberListThis()+ server.getSpecialServer().getMemberList());
 			return true;
 		} else if (message.equals("\\getMemberListOfMyServer")) {
 			sendMessage(getMemberListThis());
@@ -211,17 +211,17 @@ public class ServerRunnable implements Runnable {
 	}
 
 	String getMemberListThis() {
-		String members = "";
+		String members;
 		if (server.getServerRunnables().size() > 1) {
-			sendMessage("Active users:");
+			members = "Active users:\n";
 			for (ServerRunnable x : server.getServerRunnables())
 				if (x != this)
 					if (valid(x.clientName))
-						members += (" - " + x.clientName);
+						members += " - " + x.clientName + "\n";
 					else
-						sendMessage(" - connecting this user...");
+						members += " - still connecting this user...\n";
 		} else
-			sendMessage("No online users but you");
+			members = "No online users but you on this server\n";
 		return members;
 	}
 

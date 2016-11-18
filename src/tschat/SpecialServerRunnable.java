@@ -16,6 +16,7 @@ public class SpecialServerRunnable implements Runnable {
 	public SpecialServerRunnable(Socket connection, Server server) {
 		this.connection = connection;
 		this.server = server;
+		message = "Fetching information... click again...";
 	}
 
 	@Override
@@ -43,28 +44,25 @@ public class SpecialServerRunnable implements Runnable {
 			} catch (ClassNotFoundException | IOException e) {
 				e.printStackTrace();
 			}
-
 		}
-
 	}
 
 	String getMemberList() {
 		try {
 			output.writeObject("\\getMemberListOfMyServer");
 			output.flush();
-			return (String) input.readObject();
 		} catch (Exception e) {
 		}
-		return "";
+		return message;
 	}
 
 	void sendMyMemberList() {
 		if (server.getServerRunnables().size() > 0) {
-			message += "Active users:";
+			message = "Active users:\n";
 			for (ServerRunnable x : server.getServerRunnables())
-				message += (" - " + x.getClientName());
+				message += " - " + x.getClientName() + "\n";
 		} else
-			message = ("No active users");
+			message = "No active users on this server.\n";
 		sendMessage(message);
 	}
 

@@ -35,7 +35,7 @@ public class Client extends JFrame {
 
 	private String message = "";
 	private String serverIP;
-	private static int port = 6000;
+	private int port;
 	private Chat chat;
 
 	/**
@@ -196,7 +196,6 @@ public class Client extends JFrame {
 	private void connectToServer() throws IOException {
 		showMessage("Trying to connect...\n");
 		connection = new Socket(InetAddress.getByName(serverIP), port);
-		port = port == 6000 ? 6001 : 6000;
 		showMessage("Connected to " + connection.getInetAddress().getHostName() + "\n");
 	}
 

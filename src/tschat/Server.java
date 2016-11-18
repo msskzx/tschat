@@ -17,7 +17,7 @@ public class Server {
 		serverRunnables = new ArrayList<>();
 		this.port = port;
 		try {
-			server = new ServerSocket(port);
+			server = new ServerSocket(this.port);
 
 			if (port == 6000)
 				waitingForServer();
@@ -59,8 +59,8 @@ public class Server {
 
 	void connectToServer() {
 		try {
-			Socket tmp = new Socket(InetAddress.getByName("127.0.0.1"), 6000);
-			specialServer = new SpecialServerRunnable(tmp, this);
+			Socket connection = new Socket(InetAddress.getByName("127.0.0.1"), 6000);
+			specialServer = new SpecialServerRunnable(connection, this);
 			new Thread(specialServer).start();
 		} catch (IOException e) {
 			e.printStackTrace();
