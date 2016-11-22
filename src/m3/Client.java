@@ -53,20 +53,12 @@ public class Client extends JFrame {
 		JLabel urMessage = new JLabel("Your Message: ");
 		to.setForeground(new Color(204, 51, 0));
 		urMessage.setForeground(new Color(204, 51, 0));
-		destinationName.addActionListener(new ActionListener() {
 
-			public void actionPerformed(ActionEvent event) {
-				message = event.getActionCommand();
-				chat.destination = message;
-				destinationName.setText("");
-				// destinationName.setText("Enter The Destination Username.");
-			}
-		});
 		userText.addActionListener(new ActionListener() {
-
 			public void actionPerformed(ActionEvent event) {
 				message = event.getActionCommand();
 				chat.message = message;
+				chat.destination = destinationName.getText();
 				try {
 					String s = encode(chat);
 					System.out.println(chat.destination + " " + chat.source + " " + chat.TTL + " " + chat.message);
