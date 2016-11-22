@@ -1,4 +1,4 @@
-package tschat;
+package m3;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -28,139 +28,135 @@ public class Client extends JFrame {
 	private JTextField destinationName;
 	private JTextField userText;
 	private JTextArea chatWindow;
-
 	private ObjectOutputStream output;
 	private ObjectInputStream input;
-	private Socket connection;
-
 	private String message = "";
 	private String serverIP;
-	private int port;
+	private Socket connection;
 	private Chat chat;
+	private int toPort;
 
-	/**
-	 * @param host
-	 *            IP address of the server
-	 */
-	public Client(String host , int port) {
-		super("Chat");
-		this.port = port;
+	public Client(String host, int toPort) {
+		// host is the IP address of the server that we
+		// want to connect to
+		super("Client's Window");
+		this.toPort = toPort;
 		serverIP = host;
-
 		userText = new JTextField();
-		userText.setBackground(new Color(230, 230, 250));
-
 		destinationName = new JTextField();
-		destinationName.setBackground(new Color(188, 210, 238));
-
+		userText.setEditable(false);
+		destinationName.setEditable(false);
+		destinationName = new JTextField();
+		userText.setEditable(false);
 		chat = new Chat();
+		JLabel to = new JLabel("Destination Username: ");
+		JLabel urMessage = new JLabel("Your Message: ");
+		to.setForeground(new Color(204, 51, 0));
+		urMessage.setForeground(new Color(204, 51, 0));
+		destinationName.addActionListener(new ActionListener() {
 
-		JLabel toLabel = new JLabel("To: ");
-		toLabel.setForeground(new Color(204, 51, 0));
-
-		JLabel messageLabel = new JLabel("Message: ");
-		messageLabel.setForeground(new Color(204, 51, 0));
-
-		userText.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
-				chat.destination = destinationName.getText();
-				chat.message = event.getActionCommand();
-				userText.setText("");
+				message = event.getActionCommand();
+				chat.destination = message;
+				destinationName.setText("");
+				// destinationName.setText("Enter The Destination Username.");
+			}
+		});
+		userText.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent event) {
+				message = event.getActionCommand();
+				chat.message = message;
 				try {
-					output.writeObject(encode(chat));
-					chat.TTL = 0;
+					String s = encode(chat);
+					System.out.println(chat.destination + " " + chat.source + " " + chat.TTL + " " + chat.message);
+					output.writeObject(s);
+					String tmpS = chat.source;
+					chat = new Chat();
+					chat.source = tmpS;
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 		});
 
-		JButton btn1 = new JButton("Get active users on this server");
-		btn1.setBackground(new Color(19, 38, 57));
-		btn1.setForeground(new Color(204, 51, 0));
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		btn1.addActionListener(new ActionListener() {
+		JButton btn = new JButton("Get All Active Users");
+		btn.addActionListener(new ActionListener() {
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				getMemberList("\\getMemberListOfMyServer");
+				getMemberList("getAllMembers");
 			}
 		});
-		
-		JButton btn2 = new JButton("Get active users of other server");
+
+		JButton btn2 = new JButton("Get My Server's Active Users");
+		btn2.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				getMemberList("getMyServerMembers");
+			}
+		});
+
+		JButton btn3 = new JButton("Get The Other Server's Users");
+		btn3.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				getMemberList("getOtherServerMembers");
+			}
+		});
+		btn.setBackground(new Color(19, 38, 57));
+		btn.setForeground(new Color(204, 51, 0));
 		btn2.setBackground(new Color(19, 38, 57));
 		btn2.setForeground(new Color(204, 51, 0));
-
-		btn2.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				getMemberList("\\getMemberListOfOtherServer");
-			}
-		});
-		
-		JButton btn3 = new JButton("Get all active users");
 		btn3.setBackground(new Color(19, 38, 57));
 		btn3.setForeground(new Color(204, 51, 0));
 
-		btn3.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				getMemberList("\\getAllMembers");
-			}
-		});
-
+		this.setBackground(new Color(51, 102, 153));
 		JPanel x = new JPanel(new GridLayout(3, 0));
-		x.add(toLabel);
-		x.add(messageLabel);
-
+		x.add(to);
+		x.add(urMessage);
 		JPanel y = new JPanel(new BorderLayout());
+		userText.setBackground(new Color(230, 230, 250));
+		destinationName.setBackground(new Color(188, 210, 238));
 		y.add(destinationName, BorderLayout.NORTH);
 		y.add(userText, BorderLayout.CENTER);
-
-		JPanel w = new JPanel(new GridLayout(3, 0));
-		w.add(btn1);
-		w.add(btn2);
-		w.add(btn3);
-		
 		JPanel z = new JPanel(new BorderLayout());
 		z.add(x, BorderLayout.WEST);
 		z.add(y, BorderLayout.CENTER);
-		z.add(w, BorderLayout.SOUTH);
-
-
-		
+		JPanel buttons = new JPanel(new BorderLayout());
+		buttons.add(btn, BorderLayout.NORTH);
+		buttons.add(btn2, BorderLayout.CENTER);
+		buttons.add(btn3, BorderLayout.SOUTH);
+		z.add(buttons, BorderLayout.SOUTH);
+		add(z, BorderLayout.SOUTH);
 		chatWindow = new JTextArea();
 		chatWindow.setBackground(new Color(19, 38, 57));
 		chatWindow.setForeground(new Color(236, 242, 248));
-		chatWindow.setEditable(false);
-
 		add(new JScrollPane(chatWindow), BorderLayout.CENTER);
-		add(z, BorderLayout.SOUTH);
-
-		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-		addWindowListener(new WindowDestroyer());
-		setBackground(new Color(51, 102, 153));
-		setSize(500, 600);
-		setBounds(150, 50, 500, 600);
+		setSize(700, 700);
 		setVisible(true);
 	}
 
-	public void start() {
+	public void startRunning() {
 		try {
 			connectToServer();
 			setupStreams();
 			setupUsername();
 			whileChatting();
 		} catch (EOFException e) {
-			showMessage("Client terminated connection\n");
+			showMessage("Client Terminated Connection\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
 			close();
-
 		}
 	}
 
-	private String encode(Chat c) {
+	private static String encode(Chat c) {
 		return c.source + "$" + c.destination + "$" + c.TTL + "$" + c.message;
 	}
 
@@ -168,22 +164,21 @@ public class Client extends JFrame {
 		String ob = "";
 		try {
 			do {
-				String s = JOptionPane.showInputDialog("Choose a username");
-				if (s == null)
-					System.exit(0);
+				String s = JOptionPane.showInputDialog("Choose Username");
 				if (!valid(s)) {
-					showMessage("You can use only letters[A - Z].\n");
+					showMessage("You can use only letters. (A - Z)\n");
 					continue;
 				}
 				chat.source = s;
 				output.writeObject(s);
 				ob = (String) input.readObject();
 				showMessage(ob);
-			} while (!ob.equals("Username accepted!!"));
+				System.out.println(ob);
+			} while (!ob.equals("Username accepted !!\n"));
 		} catch (ClassNotFoundException | IOException e) {
 			e.printStackTrace();
 		}
-		this.setTitle("Chat | " + chat.source);
+		this.setTitle(chat.source);
 	}
 
 	private boolean valid(String userName) {
@@ -193,20 +188,26 @@ public class Client extends JFrame {
 		return true;
 	}
 
+	// connect to server
 	private void connectToServer() throws IOException {
-		showMessage("Trying to connect...\n");
-		connection = new Socket(InetAddress.getByName(serverIP), port);
+		showMessage("Attempting connection...\n");
+		connection = new Socket(InetAddress.getByName(serverIP), toPort);
 		showMessage("Connected to " + connection.getInetAddress().getHostName() + "\n");
 	}
 
+	// set up Streams to send and receive messages
 	private void setupStreams() throws IOException {
 		output = new ObjectOutputStream(connection.getOutputStream());
 		output.flush();
 		input = new ObjectInputStream(connection.getInputStream());
-		showMessage("Streams are now setup!\nPlease choose a username!\n");
+		showMessage("Streams are now setup!\n");
 	}
 
+	// during the chat conversation
 	private void whileChatting() throws IOException {
+		showMessage("You are now connected!\n---\n");
+		showMessage("Please choose a Username!!\n");
+		ableToType(true);
 		do
 			try {
 				message = (String) input.readObject();
@@ -220,14 +221,13 @@ public class Client extends JFrame {
 
 	private void close() {
 		showMessage("Closing connections...\n---\n");
+		ableToType(false);
 		try {
 			output.close();
 			input.close();
 			connection.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-		} finally {
-			System.exit(0);
 		}
 	}
 
@@ -240,16 +240,25 @@ public class Client extends JFrame {
 		});
 	}
 
-	private void getMemberList(String cmd) {
+	private void ableToType(final boolean flag) {
+		SwingUtilities.invokeLater(new Runnable() {
+
+			public void run() {
+				userText.setEditable(flag);
+				destinationName.setEditable(flag);
+			}
+		});
+	}
+
+	private void getMemberList(String message) {
 		try {
-			String message = "$$$" + cmd;
 			output.writeObject(message);
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
 	}
-	
+
 	public static void main(String[] args) {
-		new Client("127.0.0.1" , 6000).start();
+		new Client("127.0.0.1", 6000).startRunning();
 	}
 }

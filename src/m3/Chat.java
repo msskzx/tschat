@@ -1,4 +1,4 @@
-package tschat;
+package m3;
 
 public class Chat{
 	String source, destination, message;
