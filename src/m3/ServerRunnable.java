@@ -8,18 +8,29 @@ import java.util.ArrayList;
 
 public class ServerRunnable implements Runnable {
 
-	private ObjectOutputStream output, outputToOther;
-	private ObjectInputStream input, inputToOther;
+	private ObjectOutputStream output;
+	private ObjectInputStream input;
+	private ArrayList<ObjectOutputStream> outputToOther;
+	private ArrayList<ObjectInputStream> inputToOther;
 	private Socket conncetion;
 	private String clientName;
 	private Server myServer;
 
-	public ServerRunnable(Server myServer, Socket connection, ObjectOutputStream outputToOther,
-			ObjectInputStream inputToOther) {
+	public ServerRunnable(Server myServer, Socket connection, ArrayList<ObjectOutputStream> outputToOther,
+			ArrayList<ObjectInputStream> inputToOther) {
 		this.conncetion = connection;
 		this.myServer = myServer;
-		this.outputToOther = outputToOther;
-		this.inputToOther = inputToOther;
+		clientName = "125395415871";
+
+		for (ObjectOutputStream x : outputToOther)
+			this.outputToOther.add(x);
+
+		System.out.println(outputToOther.size());
+
+		for (ObjectInputStream x : inputToOther)
+			this.inputToOther.add(x);
+		System.out.println(inputToOther.size());
+
 	}
 
 	public void run() {
@@ -31,9 +42,9 @@ public class ServerRunnable implements Runnable {
 				System.out.println("Server ended the connection!\n");
 			} finally {
 				close();
-				for (ServerRunnable x : Server.serverRunnables)
+				for (ServerRunnable x : myServer.serverRunnables)
 					if (x.clientName != null && x.clientName.equals(clientName))
-						Server.serverRunnables.remove(x);
+						myServer.serverRunnables.remove(x);
 			}
 		}
 	}
@@ -62,15 +73,21 @@ public class ServerRunnable implements Runnable {
 				String destination = getDestination(encodedMessage);
 				String source = getSource(encodedMessage);
 				getTTL(encodedMessage);
+
+				if (destination.equals("125395415871")) {
+					sendMessage("This user is still trying to connect.");
+					continue;
+				}
+
 				ServerRunnable destinationServerRunnable = null;
 				ServerRunnable sourceServerRunnable = null;
 				boolean found = false;
-				for (ServerRunnable serverRunnable : Server.serverRunnables)
+				for (ServerRunnable serverRunnable : myServer.serverRunnables)
 					if (serverRunnable.clientName.equals(destination)) {
 						destinationServerRunnable = serverRunnable;
 						found = true;
 					}
-				for (ServerRunnable serverRunnable : Server.serverRunnables)
+				for (ServerRunnable serverRunnable : myServer.serverRunnables)
 					if (serverRunnable.clientName.equals(source))
 						sourceServerRunnable = serverRunnable;
 				if (found) {
@@ -78,26 +95,39 @@ public class ServerRunnable implements Runnable {
 					destinationServerRunnable.output.writeObject(mess);
 					sourceServerRunnable.output.writeObject(mess);
 				} else {
-					outputToOther.writeObject("&&SendThis" + encodedMessage);
-					String response = (String) inputToOther.readObject();
-					if (response.equals("&&Not_There"))
-						sendMessage("Destination Username : " + destination + " doesn't Exist.");
-					else {
-						String mess = source + " says" + ": " + message;
-						sourceServerRunnable.output.writeObject(mess);
+
+					boolean flag = false;
+
+					for (int i = 0; i < outputToOther.size(); i++) {
+						ObjectOutputStream oos = outputToOther.get(i);
+						ObjectInputStream ois = inputToOther.get(i);
+
+						oos.writeObject("&&SendThis" + encodedMessage);
+						String response = (String) ois.readObject();
+
+						if (response.equals("&&Not_There"))
+							flag = false;
+						else {
+							String mess = source + " says" + ": " + message;
+							sourceServerRunnable.output.writeObject(mess);
+							flag = true;
+							break;
+						}
 					}
+					if (!flag)
+						sendMessage("Destination Username : " + destination + " doesn't Exist.");
+
 				}
 
-				// Server.s.sendToAllClients(message , 2);
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
 			System.out.println("Client says: " + message + "\n");
 		} while (!message.equals("BYE") && !message.equals("QUIT"));
 
-		for (ServerRunnable x : Server.serverRunnables)
+		for (ServerRunnable x : myServer.serverRunnables)
 			if (x.clientName.equals(clientName))
-				Server.serverRunnables.remove(x);
+				myServer.serverRunnables.remove(x);
 	}
 
 	private static String getSource(String s) {
@@ -169,7 +199,7 @@ public class ServerRunnable implements Runnable {
 					e.printStackTrace();
 				}
 				boolean found = false;
-				ArrayList<ServerRunnable> serverRunnables = Server.serverRunnables;
+				ArrayList<ServerRunnable> serverRunnables = myServer.serverRunnables;
 				synchronized (serverRunnables) {
 					for (ServerRunnable serverRunnable : serverRunnables)
 						if (serverRunnable.clientName != null && serverRunnable != this
@@ -177,10 +207,25 @@ public class ServerRunnable implements Runnable {
 							found = true;
 							break;
 						}
-					outputToOther.writeObject("&&DoYouHave" + message);
-					outputToOther.flush();
-					String response = (String) inputToOther.readObject();
-					if (!found && response.equals("&&GoAhead")) {
+
+					boolean flag = false;
+
+					for (int i = 0; i < outputToOther.size(); i++) {
+						ObjectOutputStream oos = outputToOther.get(i);
+						ObjectInputStream ois = inputToOther.get(i);
+
+						oos.writeObject("&&DoYouHave" + message);
+						oos.flush();
+						String response = (String) ois.readObject();
+
+						if (response.equals("&&GoAhead")) {
+							flag = true;
+
+							break;
+						}
+					}
+
+					if (!found && flag) {
 						clientName = message;
 						sendMessage("Username accepted !!\n");
 						break;
@@ -212,9 +257,16 @@ public class ServerRunnable implements Runnable {
 			String members = "";
 			for (ServerRunnable x : myServer.serverRunnables)
 				members += x.clientName + "\n";
-			outputToOther.writeObject("getYourMembers");
-			outputToOther.flush();
-			members += (String) inputToOther.readObject();
+
+			for (int i = 0; i < outputToOther.size(); i++) {
+				ObjectOutputStream oos = outputToOther.get(i);
+				ObjectInputStream ois = inputToOther.get(i);
+
+				oos.writeObject("getYourMembers");
+				oos.flush();
+				members += (String) ois.readObject();
+			}
+
 			sendMessage(members);
 			return true;
 		} else if (message.equals("getMyServerMembers")) {
@@ -225,13 +277,33 @@ public class ServerRunnable implements Runnable {
 			sendMessage(members);
 
 			return true;
-		} else if (message.equals("getOtherServerMembers")) {
-			sendMessage("users:");
-			String members = "";
-			outputToOther.writeObject("getYourMembers");
-			members += (String) inputToOther.readObject();
-			sendMessage(members);
-			return true;
+		} else {
+			if (message.equals("getOtherServerMembers0")) {
+				sendMessage("users:");
+				String members = "";
+				outputToOther.get(0).writeObject("getYourMembers");
+				members += (String) inputToOther.get(0).readObject();
+				sendMessage(members);
+				return true;
+			} else {
+				if (message.equals("getOtherServerMembers1")) {
+					sendMessage("users:");
+					String members = "";
+					outputToOther.get(0).writeObject("getYourMembers");
+					members += (String) inputToOther.get(1).readObject();
+					sendMessage(members);
+					return true;
+				} else {
+					if (message.equals("getOtherServerMembers2")) {
+						sendMessage("users:");
+						String members = "";
+						outputToOther.get(0).writeObject("getYourMembers");
+						members += (String) inputToOther.get(2).readObject();
+						sendMessage(members);
+						return true;
+					}
+				}
+			}
 		}
 		return false;
 	}

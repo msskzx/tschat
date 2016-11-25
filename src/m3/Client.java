@@ -66,6 +66,7 @@ public class Client extends JFrame {
 					String tmpS = chat.source;
 					chat = new Chat();
 					chat.source = tmpS;
+					userText.setText("");
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -129,7 +130,7 @@ public class Client extends JFrame {
 		chatWindow.setBackground(new Color(19, 38, 57));
 		chatWindow.setForeground(new Color(236, 242, 248));
 		add(new JScrollPane(chatWindow), BorderLayout.CENTER);
-		setSize(700, 700);
+		setSize(400, 600);
 		setVisible(true);
 	}
 
@@ -157,6 +158,10 @@ public class Client extends JFrame {
 		try {
 			do {
 				String s = JOptionPane.showInputDialog("Choose Username");
+
+				if (s == null)
+					System.exit(0);
+
 				if (!valid(s)) {
 					showMessage("You can use only letters. (A - Z)\n");
 					continue;
@@ -251,6 +256,6 @@ public class Client extends JFrame {
 	}
 
 	public static void main(String[] args) {
-		new Client("127.0.0.1", 6000).startRunning();
+		new Client("127.0.0.1", 9000).startRunning();
 	}
 }

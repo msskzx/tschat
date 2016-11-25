@@ -19,15 +19,15 @@ public class Server {
 	private ObjectOutputStream output1, output2;
 	private int port;
 	private String serverIP;
-	public static ArrayList<ServerRunnable> serverRunnables;
+	public ArrayList<ServerRunnable> serverRunnables;
 
 	public Server(String serverIP, int port) throws Exception {
 		this.port = port;
 		this.serverIP = serverIP;
 		serverRunnables = new ArrayList<>();
 		server = new ServerSocket(port);
-		if (port == 6000)
-			connectToServer(6001);
+		if (port == 9000)
+			connectToServer(9001);
 		else
 			waitForServerConnection();
 
@@ -61,7 +61,8 @@ public class Server {
 		if (request.equals("getYourMembers")) {
 			String members = "";
 			for (ServerRunnable x : serverRunnables)
-				members += x.getClientName() + "\n";
+				if (!x.getClientName().equals("125395415871"))
+					members += x.getClientName() + "\n";
 			output2.writeObject(members);
 			output2.flush();
 		} else if (request.length() >= 10 && request.substring(0, 10).equals("&&SendThis")) {
@@ -126,8 +127,13 @@ public class Server {
 	}
 
 	private void waitForConnection() throws IOException {
-
-		ServerRunnable serverRunnable = new ServerRunnable(this, server.accept(), output1, input2);
+		ArrayList<ObjectOutputStream> x = new ArrayList<>();
+		x.add(output1);
+		
+		ArrayList<ObjectInputStream> y = new ArrayList<>();
+		y.add(input2);
+		
+		ServerRunnable serverRunnable = new ServerRunnable(this, server.accept(), x, y);
 		serverRunnables.add(serverRunnable);
 		new Thread(serverRunnable).start();
 	}
@@ -188,6 +194,6 @@ public class Server {
 	}
 
 	public static void main(String[] args) throws Exception {
-		new Server("127.0.0.1", 6001);
+		new Server("127.0.0.1", 9001);
 	}
 }
