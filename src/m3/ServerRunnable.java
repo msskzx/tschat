@@ -28,7 +28,6 @@ public class ServerRunnable implements Runnable {
 		for (ObjectOutputStream x : outputToOther)
 			this.outputToOther.add(x);
 
-
 		for (ObjectInputStream x : inputToOther)
 			this.inputToOther.add(x);
 
