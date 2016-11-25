@@ -15,8 +15,8 @@ public class Server {
 
 	// 2 for the runnables
 	private ObjectInputStream input1, input2;
-
 	private ObjectOutputStream output1, output2;
+
 	private int port;
 	private String serverIP;
 	public ArrayList<ServerRunnable> serverRunnables;
@@ -133,7 +133,9 @@ public class Server {
 		ArrayList<ObjectInputStream> y = new ArrayList<>();
 		y.add(input2);
 		
-		ServerRunnable serverRunnable = new ServerRunnable(this, server.accept(), x, y);
+		Socket tmp = server.accept();
+		
+		ServerRunnable serverRunnable = new ServerRunnable(this, tmp, x, y);
 		serverRunnables.add(serverRunnable);
 		new Thread(serverRunnable).start();
 	}

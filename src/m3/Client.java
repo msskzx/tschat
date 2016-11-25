@@ -36,9 +36,14 @@ public class Client extends JFrame {
 	private Chat chat;
 	private int toPort;
 
+	/**
+	 * 
+	 * @param host
+	 *            IP address of the host
+	 * @param toPort
+	 *            port of the server
+	 */
 	public Client(String host, int toPort) {
-		// host is the IP address of the server that we
-		// want to connect to
 		super("Client's Window");
 		this.toPort = toPort;
 		serverIP = host;
@@ -84,7 +89,7 @@ public class Client extends JFrame {
 			}
 		});
 
-		JButton btn2 = new JButton("Get My Server's Active Users");
+		JButton btn2 = new JButton("Get users on my server");
 		btn2.addActionListener(new ActionListener() {
 
 			@Override
@@ -93,12 +98,30 @@ public class Client extends JFrame {
 			}
 		});
 
-		JButton btn3 = new JButton("Get The Other Server's Users");
+		JButton btn3 = new JButton("Get users on Server 2");
 		btn3.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				getMemberList("getOtherServerMembers");
+				getMemberList("getOtherServerMembers0");
+			}
+		});
+
+		JButton btn4 = new JButton("Get users on Server 3");
+		btn4.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				getMemberList("getOtherServerMembers1");
+			}
+		});
+
+		JButton btn5 = new JButton("Get users on Server 4");
+		btn5.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				getMemberList("getOtherServerMembers2");
 			}
 		});
 		btn.setBackground(new Color(19, 38, 57));
@@ -107,6 +130,10 @@ public class Client extends JFrame {
 		btn2.setForeground(new Color(204, 51, 0));
 		btn3.setBackground(new Color(19, 38, 57));
 		btn3.setForeground(new Color(204, 51, 0));
+		btn4.setBackground(new Color(19, 38, 57));
+		btn4.setForeground(new Color(204, 51, 0));
+		btn5.setBackground(new Color(19, 38, 57));
+		btn5.setForeground(new Color(204, 51, 0));
 
 		this.setBackground(new Color(51, 102, 153));
 		JPanel x = new JPanel(new GridLayout(3, 0));
@@ -120,17 +147,23 @@ public class Client extends JFrame {
 		JPanel z = new JPanel(new BorderLayout());
 		z.add(x, BorderLayout.WEST);
 		z.add(y, BorderLayout.CENTER);
-		JPanel buttons = new JPanel(new BorderLayout());
-		buttons.add(btn, BorderLayout.NORTH);
-		buttons.add(btn2, BorderLayout.CENTER);
-		buttons.add(btn3, BorderLayout.SOUTH);
+
+		JPanel buttons = new JPanel(new GridLayout(5, 0));
+		buttons.add(btn);
+		buttons.add(btn2);
+		buttons.add(btn3);
+		buttons.add(btn4);
+		buttons.add(btn5);
+
 		z.add(buttons, BorderLayout.SOUTH);
+
 		add(z, BorderLayout.SOUTH);
 		chatWindow = new JTextArea();
 		chatWindow.setBackground(new Color(19, 38, 57));
 		chatWindow.setForeground(new Color(236, 242, 248));
 		add(new JScrollPane(chatWindow), BorderLayout.CENTER);
-		setSize(400, 600);
+
+		setBounds(50, 50, 400, 600);
 		setVisible(true);
 	}
 
@@ -185,14 +218,12 @@ public class Client extends JFrame {
 		return true;
 	}
 
-	// connect to server
 	private void connectToServer() throws IOException {
 		showMessage("Attempting connection...\n");
 		connection = new Socket(InetAddress.getByName(serverIP), toPort);
 		showMessage("Connected to " + connection.getInetAddress().getHostName() + "\n");
 	}
 
-	// set up Streams to send and receive messages
 	private void setupStreams() throws IOException {
 		output = new ObjectOutputStream(connection.getOutputStream());
 		output.flush();
@@ -200,7 +231,6 @@ public class Client extends JFrame {
 		showMessage("Streams are now setup!\n");
 	}
 
-	// during the chat conversation
 	private void whileChatting() throws IOException {
 		showMessage("You are now connected!\n---\n");
 		showMessage("Please choose a Username!!\n");
@@ -223,6 +253,7 @@ public class Client extends JFrame {
 			output.close();
 			input.close();
 			connection.close();
+			System.exit(0);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

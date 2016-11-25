@@ -22,48 +22,44 @@ public class ServerRunnable implements Runnable {
 		this.myServer = myServer;
 		clientName = "125395415871";
 
+		this.outputToOther = new ArrayList<>();
+		this.inputToOther = new ArrayList<>();
+
 		for (ObjectOutputStream x : outputToOther)
 			this.outputToOther.add(x);
 
-		System.out.println(outputToOther.size());
 
 		for (ObjectInputStream x : inputToOther)
 			this.inputToOther.add(x);
-		System.out.println(inputToOther.size());
 
 	}
 
 	public void run() {
-		while (true) {
-			try {
-				setupStreams();
-				whileChatting();
-			} catch (Exception e) {
-				System.out.println("Server ended the connection!\n");
-			} finally {
-				close();
-				for (ServerRunnable x : myServer.serverRunnables)
-					if (x.clientName != null && x.clientName.equals(clientName))
-						myServer.serverRunnables.remove(x);
-			}
+		try {
+			setupStreams();
+			whileChatting();
+		} catch (Exception e) {
+			System.out.println("Server ended the connection!\n");
+		} finally {
+			close();
+			for (ServerRunnable x : myServer.serverRunnables)
+				if (x.clientName.equals(clientName))
+					myServer.serverRunnables.remove(x);
 		}
 	}
 
-	// get stream to send and receive data
 	private void setupStreams() throws IOException {
 		output = new ObjectOutputStream(conncetion.getOutputStream());
 		output.flush();
 		input = new ObjectInputStream(conncetion.getInputStream());
 	}
 
-	// during the chat conversation
 	private void whileChatting() throws Exception {
 		String message = "You are now connected!\n---\n";
 		joinResponse();
 		sendMessage("Please Enter Destination User name in the first Text field\n"
 				+ "Please Enter Your Messege in the Second Text field.\n");
 		do {
-			// have a conversation
 			try {
 				String encodedMessage = (String) input.readObject();
 
@@ -239,7 +235,6 @@ public class ServerRunnable implements Runnable {
 		}
 	}
 
-	// close streams and sockets after you are done
 	private void close() {
 		System.out.println("Closing connections...\n---\n");
 		try {
