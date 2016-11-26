@@ -1,10 +1,11 @@
-package m3;
+package tschat;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class ServerRunnable implements Runnable {
 
@@ -40,9 +41,16 @@ public class ServerRunnable implements Runnable {
 			System.out.println("Server ended the connection!\n");
 		} finally {
 			close();
-			for (ServerRunnable x : server.getServerRunnables())
-				if (x.clientName.equals(clientName))
-					server.getServerRunnables().remove(x);
+			removeUser();
+		}
+	}
+
+	private void removeUser() {
+		Iterator<ServerRunnable> iterator = server.getServerRunnables().iterator();
+		while (iterator.hasNext()) {
+			ServerRunnable x = iterator.next();
+			if (x.clientName != null && x.clientName.equals(clientName))
+				iterator.remove();
 		}
 	}
 
@@ -55,8 +63,8 @@ public class ServerRunnable implements Runnable {
 	private void whileChatting() throws Exception {
 		String message = "You are now connected!\n---\n";
 		joinResponse();
-		sendMessage("Please Enter Destination User name in the first Text field\n"
-				+ "Please Enter Your Messege in the Second Text field.\n");
+		sendMessage(message + "Enter username of the person you would to chat with in the first text field\n"
+				+ "and your messege in the second text field.\n---\n");
 		do {
 			try {
 				String encodedMessage = (String) input.readObject();
@@ -106,7 +114,7 @@ public class ServerRunnable implements Runnable {
 						}
 					}
 					if (!flag)
-						sendMessage("Destination Username : " + destination + " doesn't Exist.");
+						sendMessage("Username, " + destination + ",doesn't Exist.");
 				}
 
 			} catch (ClassNotFoundException e) {
@@ -242,10 +250,9 @@ public class ServerRunnable implements Runnable {
 
 	boolean getMemberList(String message) throws Exception {
 		if (message.equals("getAllMembers")) {
-			sendMessage("users:");
-			String members = "";
+			String members = "Users:\n";
 			for (ServerRunnable x : server.getServerRunnables())
-				members += x.clientName + "\n";
+				members += " - " + x.clientName + "\n";
 
 			for (int i = 0; i < outputToOther.size(); i++) {
 				ObjectOutputStream oos = outputToOther.get(i);
@@ -259,39 +266,51 @@ public class ServerRunnable implements Runnable {
 			sendMessage(members);
 			return true;
 		} else if (message.equals("getMyServerMembers")) {
-			sendMessage("users:");
-			String members = "";
+			String members = "Users:\n";
 			for (ServerRunnable x : server.getServerRunnables())
-				members += x.clientName + "\n";
+				members += " - " + x.clientName + "\n";
+
+			if (members.length() < 7)
+				members = "No online users on this server.";
+
 			sendMessage(members);
 
 			return true;
 		} else {
 			if (message.equals("getOtherServerMembers0")) {
-				System.out.println("ONE");
-				sendMessage("users:");
-				String members = "";
+				String members = "Users:\n";
 				outputToOther.get(0).writeObject("getYourMembers");
-				System.out.println("TWO");
 				members += (String) inputToOther.get(0).readObject();
-				System.out.println("THREE");
+
+				if (members.equals("Users:\n"))
+					members = "No online users on this server.";
+
 				sendMessage(members);
+				
 				return true;
 			} else {
 				if (message.equals("getOtherServerMembers1")) {
-					sendMessage("users:");
-					String members = "";
+					String members = "Users:\n";
 					outputToOther.get(1).writeObject("getYourMembers");
 					members += (String) inputToOther.get(1).readObject();
+
+					if (members.equals("Users:\n"))
+						members = "No online users on this server.";
+
 					sendMessage(members);
+
 					return true;
 				} else {
 					if (message.equals("getOtherServerMembers2")) {
-						sendMessage("users:");
-						String members = "";
+						String members = "Users:\n";
 						outputToOther.get(2).writeObject("getYourMembers");
 						members += (String) inputToOther.get(2).readObject();
+
+						if (members.equals("Users:\n"))
+							members = "No online users on this server.";
+
 						sendMessage(members);
+
 						return true;
 					}
 				}

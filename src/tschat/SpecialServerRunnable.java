@@ -1,4 +1,4 @@
-package m3;
+package tschat;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -27,16 +27,13 @@ public class SpecialServerRunnable implements Runnable {
 	}
 
 	private void waitForServerRequests() throws Exception {
-		System.out.println("FOUR");
 		String request = (String) input.readObject();
 		if (request.equals("getYourMembers")) {
 			String members = "";
 			for (ServerRunnable x : server.getServerRunnables())
 				if (!x.getClientName().equals("125395415871"))
-					members += x.getClientName() + "\n";
-			System.out.println("FIVE");
+					members += " - " + x.getClientName() + "\n";
 			output.writeObject(members);
-			System.out.println("SEX");
 			output.flush();
 		} else if (request.length() >= 10 && request.substring(0, 10).equals("&&SendThis")) {
 			String encodedMessage = request.substring(10);

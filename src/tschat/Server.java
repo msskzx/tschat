@@ -1,4 +1,4 @@
-package m3;
+package tschat;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -109,6 +109,7 @@ public class Server {
 
 	public static void main(String[] args) throws Exception {
 		Scanner sc = new Scanner(System.in);
+		System.out.println("Enter port number");
 		int port = sc.nextInt();
 		sc.close();
 		// server1: 9001
