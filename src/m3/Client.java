@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.Scanner;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -47,15 +48,13 @@ public class Client extends JFrame {
 		super("Client's Window");
 		this.toPort = toPort;
 		serverIP = host;
+		chat = new Chat();
+
 		userText = new JTextField();
 		destinationName = new JTextField();
-		userText.setEditable(false);
-		destinationName.setEditable(false);
-		destinationName = new JTextField();
-		userText.setEditable(false);
-		chat = new Chat();
-		JLabel to = new JLabel("Destination Username: ");
-		JLabel urMessage = new JLabel("Your Message: ");
+
+		JLabel to = new JLabel("To: ");
+		JLabel urMessage = new JLabel("Message: ");
 		to.setForeground(new Color(204, 51, 0));
 		urMessage.setForeground(new Color(204, 51, 0));
 
@@ -66,7 +65,6 @@ public class Client extends JFrame {
 				chat.destination = destinationName.getText();
 				try {
 					String s = encode(chat);
-					System.out.println(chat.destination + " " + chat.source + " " + chat.TTL + " " + chat.message);
 					output.writeObject(s);
 					String tmpS = chat.source;
 					chat = new Chat();
@@ -165,6 +163,7 @@ public class Client extends JFrame {
 
 		setBounds(50, 50, 400, 600);
 		setVisible(true);
+		startRunning();
 	}
 
 	public void startRunning() {
@@ -234,7 +233,6 @@ public class Client extends JFrame {
 	private void whileChatting() throws IOException {
 		showMessage("You are now connected!\n---\n");
 		showMessage("Please choose a Username!!\n");
-		ableToType(true);
 		do
 			try {
 				message = (String) input.readObject();
@@ -248,7 +246,6 @@ public class Client extends JFrame {
 
 	private void close() {
 		showMessage("Closing connections...\n---\n");
-		ableToType(false);
 		try {
 			output.close();
 			input.close();
@@ -261,19 +258,8 @@ public class Client extends JFrame {
 
 	private void showMessage(final String message) {
 		SwingUtilities.invokeLater(new Runnable() {
-
 			public void run() {
 				chatWindow.append(message);
-			}
-		});
-	}
-
-	private void ableToType(final boolean flag) {
-		SwingUtilities.invokeLater(new Runnable() {
-
-			public void run() {
-				userText.setEditable(flag);
-				destinationName.setEditable(flag);
 			}
 		});
 	}
@@ -287,6 +273,13 @@ public class Client extends JFrame {
 	}
 
 	public static void main(String[] args) {
-		new Client("127.0.0.1", 9000).startRunning();
+		Scanner sc = new Scanner(System.in);
+		int port = sc.nextInt();
+		sc.close();
+		// server1: 9001
+		// server2: 9000
+		// server3: 9002
+		// server4: 9003
+		new Client("127.0.0.1", port);
 	}
 }
