@@ -1,6 +1,5 @@
 package tschat;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -12,31 +11,37 @@ public class ServerRunnable implements Runnable {
 
 	private ObjectOutputStream output;
 	private ObjectInputStream input;
+	private ArrayList<ObjectOutputStream> outputToOther;
+	private ArrayList<ObjectInputStream> inputToOther;
 	private Socket conncetion;
 	private String clientName;
 	private Server server;
 
-	public ServerRunnable(Socket connection, Server server) {
+	public ServerRunnable(Server server, Socket connection, ArrayList<ObjectOutputStream> outputToOther,
+			ArrayList<ObjectInputStream> inputToOther) {
 		this.conncetion = connection;
 		this.server = server;
-		clientName = "192595315646546256165465";
+		clientName = "125395415871";
+
+		this.outputToOther = new ArrayList<>();
+		this.inputToOther = new ArrayList<>();
+
+		for (ObjectOutputStream x : outputToOther)
+			this.outputToOther.add(x);
+
+		for (ObjectInputStream x : inputToOther)
+			this.inputToOther.add(x);
 	}
 
 	public void run() {
 		try {
-			while (true) {
-				try {
-					setupStreams();
-					whileChatting();
-				} catch (EOFException eofException) {
-					System.out.println("Server ended the connection!\n");
-				} finally {
-					close();
-					removeUser();
-				}
-			}
-		} catch (IOException ioException) {
-			ioException.printStackTrace();
+			setupStreams();
+			whileChatting();
+		} catch (Exception e) {
+			System.out.println("Server ended the connection!\n");
+		} finally {
+			close();
+			removeUser();
 		}
 	}
 
@@ -55,8 +60,8 @@ public class ServerRunnable implements Runnable {
 		input = new ObjectInputStream(conncetion.getInputStream());
 	}
 
-	private void whileChatting() throws IOException {
-		String message = "\nYou are now connected!\n---\n";
+	private void whileChatting() throws Exception {
+		String message = "You are now connected!\n---\n";
 		joinResponse();
 		sendMessage(message + "Enter username of the person you would to chat with in the first text field\n"
 				+ "and your messege in the second text field.\n---\n");
@@ -64,37 +69,63 @@ public class ServerRunnable implements Runnable {
 			try {
 				String encodedMessage = (String) input.readObject();
 
-				message = getMessage(encodedMessage);
-
-				if (getMemberList(message))
+				if (getMemberList(encodedMessage))
 					continue;
-
+				message = getMessage(encodedMessage);
 				String destination = getDestination(encodedMessage);
 				String source = getSource(encodedMessage);
 				getTTL(encodedMessage);
 
+				if (destination.equals("125395415871")) {
+					sendMessage("This user is still trying to connect.");
+					continue;
+				}
+
 				ServerRunnable destinationServerRunnable = null;
 				ServerRunnable sourceServerRunnable = null;
-
+				boolean found = false;
 				for (ServerRunnable serverRunnable : server.getServerRunnables())
-					if (serverRunnable.clientName.equals(destination))
+					if (serverRunnable.clientName.equals(destination)) {
 						destinationServerRunnable = serverRunnable;
-
+						found = true;
+					}
 				for (ServerRunnable serverRunnable : server.getServerRunnables())
 					if (serverRunnable.clientName.equals(source))
 						sourceServerRunnable = serverRunnable;
+				if (found) {
+					String mess = source + " says" + ": " + message;
+					destinationServerRunnable.output.writeObject(mess);
+					sourceServerRunnable.output.writeObject(mess);
+				} else {
+					boolean flag = false;
 
-				if (destinationServerRunnable != null) {
-					String s = source + " says" + ": " + message;
-					destinationServerRunnable.output.writeObject(s);
-					sourceServerRunnable.output.writeObject(s);
-					System.out.println(s + "\n");
-				} else
-					sendMessage("Destination Username: " + destination + " doesn't Exist.");
+					for (int i = 0; i < outputToOther.size(); i++) {
+						ObjectOutputStream oos = outputToOther.get(i);
+						ObjectInputStream ois = inputToOther.get(i);
+
+						oos.writeObject("&&SendThis" + encodedMessage);
+						String response = (String) ois.readObject();
+
+						if (!response.equals("&&Not_There")) {
+							String mess = source + " says" + ": " + message;
+							sourceServerRunnable.output.writeObject(mess);
+							flag = true;
+							break;
+						}
+					}
+					if (!flag)
+						sendMessage("Username, " + destination + ",doesn't Exist.");
+				}
+
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
+			System.out.println("Client says: " + message + "\n");
 		} while (!message.equals("BYE") && !message.equals("QUIT"));
+
+		for (ServerRunnable x : server.getServerRunnables())
+			if (x.clientName.equals(clientName))
+				server.getServerRunnables().remove(x);
 	}
 
 	private static String getSource(String s) {
@@ -139,7 +170,6 @@ public class ServerRunnable implements Runnable {
 	}
 
 	private static String getMessage(String s) {
-		System.out.println(s);
 		int i = 0;
 		while (s.charAt(i) != '$')
 			i++;
@@ -153,7 +183,11 @@ public class ServerRunnable implements Runnable {
 		return s.substring(i);
 	}
 
-	private void joinResponse() {
+	public ObjectOutputStream getOutput() {
+		return output;
+	}
+
+	private void joinResponse() throws Exception {
 		String message = "";
 		while (true) {
 			try {
@@ -171,9 +205,27 @@ public class ServerRunnable implements Runnable {
 							found = true;
 							break;
 						}
-					if (!found) {
+
+					boolean flag = false;
+
+					for (int i = 0; i < outputToOther.size(); i++) {
+						ObjectOutputStream oos = outputToOther.get(i);
+						ObjectInputStream ois = inputToOther.get(i);
+
+						oos.writeObject("&&DoYouHave" + message);
+						oos.flush();
+						String response = (String) ois.readObject();
+
+						if (response.equals("&&GoAhead")) {
+							flag = true;
+
+							break;
+						}
+					}
+
+					if (!found && flag) {
 						clientName = message;
-						sendMessage("Username accepted!!");
+						sendMessage("Username accepted !!\n");
 						break;
 					}
 				}
@@ -196,31 +248,79 @@ public class ServerRunnable implements Runnable {
 		}
 	}
 
-	boolean getMemberList(String message) {
-		if (message.equals("\\getAllMembers")) {
-			sendMessage(getMemberListThis() + server.getMemberList());
-		} else if (message.equals("\\getMemberListOfMyServer")) {
-			sendMessage(getMemberListThis());
+	boolean getMemberList(String message) throws Exception {
+		if (message.equals("getAllMembers")) {
+			String members = "Users:\n";
+			for (ServerRunnable x : server.getServerRunnables())
+				members += " - " + x.clientName + "\n";
+
+			for (int i = 0; i < outputToOther.size(); i++) {
+				ObjectOutputStream oos = outputToOther.get(i);
+				ObjectInputStream ois = inputToOther.get(i);
+
+				oos.writeObject("getYourMembers");
+				oos.flush();
+				members += (String) ois.readObject();
+			}
+
+			sendMessage(members);
 			return true;
-		} else if (message.equals("\\getMemberListOfOtherServer")) {
-			sendMessage(server.getMemberList());
+		} else if (message.equals("getMyServerMembers")) {
+			String members = "Users:\n";
+			for (ServerRunnable x : server.getServerRunnables())
+				members += " - " + x.clientName + "\n";
+
+			if (members.length() < 7)
+				members = "No online users on this server.";
+
+			sendMessage(members);
+
+			return true;
+		} else {
+			if (message.equals("getOtherServerMembers0")) {
+				String members = "Users:\n";
+				outputToOther.get(0).writeObject("getYourMembers");
+				members += (String) inputToOther.get(0).readObject();
+
+				if (members.equals("Users:\n"))
+					members = "No online users on this server.";
+
+				sendMessage(members);
+				
+				return true;
+			} else {
+				if (message.equals("getOtherServerMembers1")) {
+					String members = "Users:\n";
+					outputToOther.get(1).writeObject("getYourMembers");
+					members += (String) inputToOther.get(1).readObject();
+
+					if (members.equals("Users:\n"))
+						members = "No online users on this server.";
+
+					sendMessage(members);
+
+					return true;
+				} else {
+					if (message.equals("getOtherServerMembers2")) {
+						String members = "Users:\n";
+						outputToOther.get(2).writeObject("getYourMembers");
+						members += (String) inputToOther.get(2).readObject();
+
+						if (members.equals("Users:\n"))
+							members = "No online users on this server.";
+
+						sendMessage(members);
+
+						return true;
+					}
+				}
+			}
 		}
 		return false;
 	}
 
-	String getMemberListThis() {
-		String members = "";
-		if (server.getServerRunnables().size() > 1) {
-			sendMessage("Active users:");
-			for (ServerRunnable x : server.getServerRunnables())
-				if (x != this)
-					if (valid(x.clientName))
-						members += (" - " + x.clientName);
-					else
-						sendMessage(" - connecting this user...");
-		} else
-			sendMessage("No online users but you");
-		return members;
+	public String getClientName() {
+		return clientName;
 	}
 
 	public void sendMessage(String message) {
@@ -229,17 +329,6 @@ public class ServerRunnable implements Runnable {
 			output.flush();
 		} catch (IOException e) {
 		}
-	}
-
-	private boolean valid(String userName) {
-		for (int i = 0; i < userName.length(); ++i)
-			if (!Character.isAlphabetic(userName.charAt(i)))
-				return false;
-		return true;
-	}
-
-	public String getClientName() {
-		return clientName;
 	}
 
 }

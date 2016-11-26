@@ -6,151 +6,116 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class Server {
 
 	private ServerSocket server;
-	private ObjectOutputStream output;
-	private ObjectInputStream input;
-	private Socket connection;
 	private ArrayList<ServerRunnable> serverRunnables;
+
+	private ArrayList<Socket> connections;
+	private ArrayList<ObjectInputStream> inputs;
+	private ArrayList<ObjectOutputStream> outputs;
+
 	private int port;
+	private String serverIP;
 
-	public Server(int port) {
-		serverRunnables = new ArrayList<>();
+	public Server(String serverIP, int port) throws Exception {
 		this.port = port;
-		try {
-			// The maximum queue length for incoming connection indications (a
-			// request to connect) is set to 50
-			server = new ServerSocket(port);
+		this.serverIP = serverIP;
+		server = new ServerSocket(port);
 
-			System.out.println("Waiting for someone to connect...");
-			if (port == 6000)
-				waitingForServer();
-			else
-				connectToServer(6000);
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					chatWithServer();
-				}
-			}).start();
+		serverRunnables = new ArrayList<>();
+		connections = new ArrayList<>();
+		inputs = new ArrayList<>();
+		outputs = new ArrayList<>();
 
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					waitingForConnection();
-				}
-			}).start();
-
-		} catch (IOException ioException) {
-			ioException.printStackTrace();
+		if (this.port == 9000) {
+			connectToServer(9001);
+			waitForServerConnection(9002);
+			waitForServerConnection(9003);
+		} else if (port == 9001) {
+			waitForServerConnection(9000);
+			waitForServerConnection(9002);
+			waitForServerConnection(9003);
+		} else if (port == 9002) {
+			connectToServer(9000);
+			connectToServer(9001);
+			waitForServerConnection(9003);
+		} else {
+			connectToServer(9000);
+			connectToServer(9001);
+			connectToServer(9002);
 		}
-	}
 
-	void waitingForConnection() {
-		while (true) {
-			try {
-				ServerRunnable serverRunnable = new ServerRunnable(server.accept(), this);
-				serverRunnables.add(serverRunnable);
-				new Thread(serverRunnable).start();
-			} catch (IOException e) {
-				e.printStackTrace();
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				while (true) {
+					try {
+						waitForConnection();
+					} catch (Exception e) {
+					}
+				}
 			}
-		}
+		}).start();
+
+		new Thread(new SpecialServerRunnable(this, outputs.get(1), inputs.get(0))).start();
+		new Thread(new SpecialServerRunnable(this, outputs.get(3), inputs.get(2))).start();
+		new Thread(new SpecialServerRunnable(this, outputs.get(5), inputs.get(4))).start();
 	}
 
-	void waitingForServer() {
-		try {
-			connection = server.accept();
-			setupStreams();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	private void connectToServer(int portTo) throws IOException {
+		connections.add(new Socket(InetAddress.getByName(serverIP), portTo));
+		connections.add(new Socket(InetAddress.getByName(serverIP), portTo));
+		setupStreams();
 	}
 
-	void connectToServer(int port) {
-		try {
-			connection = new Socket(InetAddress.getByName("127.0.0.1"), port);
-			setupStreams();
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		port = port == 6000 ? 6001 : 6000;
+	private void waitForServerConnection(int portFrom) throws IOException {
+		connections.add(server.accept());
+		connections.add(server.accept());
+		setupStreams();
 	}
 
-	void setupStreams() {
-		try {
-			output = new ObjectOutputStream(connection.getOutputStream());
-			output.flush();
-			input = new ObjectInputStream(connection.getInputStream());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	private void setupStreams() throws IOException {
+		outputs.add(new ObjectOutputStream(connections.get(connections.size() - 2).getOutputStream()));
+		inputs.add(new ObjectInputStream(connections.get(connections.size() - 2).getInputStream()));
+
+		outputs.add(new ObjectOutputStream(connections.get(connections.size() - 1).getOutputStream()));
+		inputs.add(new ObjectInputStream(connections.get(connections.size() - 1).getInputStream()));
+	}
+
+	private void waitForConnection() throws IOException {
+		ArrayList<ObjectOutputStream> x = new ArrayList<>();
+		ArrayList<ObjectInputStream> y = new ArrayList<>();
+
+		x.add(outputs.get(0));
+		x.add(outputs.get(2));
+		x.add(outputs.get(4));
+
+		y.add(inputs.get(1));
+		y.add(inputs.get(3));
+		y.add(inputs.get(5));
+
+		ServerRunnable serverRunnable = new ServerRunnable(this, server.accept(), x, y);
+		serverRunnables.add(serverRunnable);
+		new Thread(serverRunnable).start();
 	}
 
 	public ArrayList<ServerRunnable> getServerRunnables() {
 		return serverRunnables;
 	}
 
-	String getMemberList() {
-		try {
-			output.writeObject("\\getMemberListOfMyServer");
-			String inp = null;
-			do {
-				try {
-					inp = (String) input.readObject();
-				} catch (ClassNotFoundException e) {
-					e.printStackTrace();
-				}
-			} while (inp == null);
-			return inp;
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return "";
-	}
-
-	void sendMemberList(String message) {
-		if (message == null)
-			return;
-
-		if (message.equals("\\getMemberListOfMyServer")) {
-			String members = "";
-			for (ServerRunnable x : serverRunnables)
-				members += (" - " + x.getClientName());
-			try {
-				output.writeObject(members);
-				output.flush();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	private void chatWithServer() {
-		do
-			try {
-				String message;
-				try {
-					message = (String) input.readObject();
-					if (message != null && !message.equals(""))
-						sendMemberList(message);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} catch (ClassNotFoundException e) {
-			}
-		while (true);
-	}
-
-	public static void main(String[] args) {
-		new Server(6000);
-
+	public static void main(String[] args) throws Exception {
+		Scanner sc = new Scanner(System.in);
+		System.out.println("Enter port number");
+		int port = sc.nextInt();
+		sc.close();
+		// server1: 9001
+		// server2: 9000
+		// server3: 9002
+		// server4: 9003
+		new Server("127.0.0.1", port);
 	}
 }

@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.Scanner;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -22,128 +23,154 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-import tschat.WindowDestroyer;
-
 @SuppressWarnings("serial")
 public class Client extends JFrame {
 
 	private JTextField destinationName;
 	private JTextField userText;
 	private JTextArea chatWindow;
-
 	private ObjectOutputStream output;
 	private ObjectInputStream input;
-	private Socket connection;
-
 	private String message = "";
 	private String serverIP;
-	private static int port = 6000;
+	private Socket connection;
 	private Chat chat;
+	private int toPort;
 
 	/**
+	 * 
 	 * @param host
-	 *            IP address of the server
+	 *            IP address of the host
+	 * @param toPort
+	 *            port of the server
 	 */
-	public Client(String host , int port) {
+	public Client(String host, int toPort) {
 		super("Chat");
-		this.port = port;
+		this.toPort = toPort;
 		serverIP = host;
-
-		userText = new JTextField();
-		userText.setBackground(new Color(230, 230, 250));
-
-		destinationName = new JTextField();
-		destinationName.setBackground(new Color(188, 210, 238));
-
 		chat = new Chat();
 
-		JLabel toLabel = new JLabel("To: ");
-		toLabel.setForeground(new Color(204, 51, 0));
+		userText = new JTextField();
+		destinationName = new JTextField();
 
-		JLabel messageLabel = new JLabel("Message: ");
-		messageLabel.setForeground(new Color(204, 51, 0));
+		Color bgBlue = new Color(19, 38, 57);
+		Color fgRed = new Color(204, 51, 0);
+
+		JLabel to = new JLabel("To: ");
+		to.setForeground(fgRed);
+
+		JLabel urMessage = new JLabel("Message: ");
+		urMessage.setForeground(fgRed);
 
 		userText.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
+				message = event.getActionCommand();
+				chat.message = message;
 				chat.destination = destinationName.getText();
-				chat.message = event.getActionCommand();
-				userText.setText("");
 				try {
-					output.writeObject(encode(chat));
-					chat.TTL = 0;
+					String s = encode(chat);
+					output.writeObject(s);
+					userText.setText("");
+					
+					String tmpS = chat.source;
+					chat = new Chat();
+					chat.source = tmpS;
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 		});
+		
+		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+		addWindowListener(new WindowDestroyer());
 
-		JButton btn1 = new JButton("Get active users on this server");
-		btn1.setBackground(new Color(19, 38, 57));
-		btn1.setForeground(new Color(204, 51, 0));
+		JButton btn = new JButton("Get all users");
+		btn.addActionListener(new ActionListener() {
 
-		btn1.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				getMemberList("\\getMemberListOfMyServer");
+				getMemberList("getAllMembers");
 			}
 		});
-		
-		JButton btn2 = new JButton("Get active users of other server");
-		btn2.setBackground(new Color(19, 38, 57));
-		btn2.setForeground(new Color(204, 51, 0));
 
+		JButton btn2 = new JButton("Get users on my server");
 		btn2.addActionListener(new ActionListener() {
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				getMemberList("\\getMemberListOfOtherServer");
+				getMemberList("getMyServerMembers");
 			}
 		});
-		
-		JButton btn3 = new JButton("Get all active users");
-		btn3.setBackground(new Color(19, 38, 57));
-		btn3.setForeground(new Color(204, 51, 0));
 
+		JButton btn3 = new JButton("Get users on server 2");
 		btn3.addActionListener(new ActionListener() {
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				getMemberList("\\getAllMembers");
+				getMemberList("getOtherServerMembers0");
 			}
 		});
 
-		JPanel x = new JPanel(new GridLayout(3, 0));
-		x.add(toLabel);
-		x.add(messageLabel);
+		JButton btn4 = new JButton("Get users on server 3");
+		btn4.addActionListener(new ActionListener() {
 
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				getMemberList("getOtherServerMembers1");
+			}
+		});
+
+		JButton btn5 = new JButton("Get users on server 4");
+		btn5.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				getMemberList("getOtherServerMembers2");
+			}
+		});
+		btn.setBackground(bgBlue);
+		btn.setForeground(fgRed);
+		btn2.setBackground(bgBlue);
+		btn2.setForeground(fgRed);
+		btn3.setBackground(bgBlue);
+		btn3.setForeground(fgRed);
+		btn4.setBackground(bgBlue);
+		btn4.setForeground(fgRed);
+		btn5.setBackground(bgBlue);
+		btn5.setForeground(fgRed);
+
+		this.setBackground(new Color(51, 102, 153));
+		JPanel x = new JPanel(new GridLayout(3, 0));
+		x.add(to);
+		x.add(urMessage);
 		JPanel y = new JPanel(new BorderLayout());
+		userText.setBackground(new Color(230, 230, 250));
+		destinationName.setBackground(new Color(188, 210, 238));
 		y.add(destinationName, BorderLayout.NORTH);
 		y.add(userText, BorderLayout.CENTER);
-
-		JPanel w = new JPanel(new GridLayout(3, 0));
-		w.add(btn1);
-		w.add(btn2);
-		w.add(btn3);
-		
 		JPanel z = new JPanel(new BorderLayout());
 		z.add(x, BorderLayout.WEST);
 		z.add(y, BorderLayout.CENTER);
-		z.add(w, BorderLayout.SOUTH);
 
+		JPanel buttons = new JPanel(new GridLayout(5, 0));
+		buttons.add(btn);
+		buttons.add(btn2);
+		buttons.add(btn3);
+		buttons.add(btn4);
+		buttons.add(btn5);
 
-		
+		z.add(buttons, BorderLayout.SOUTH);
+
 		chatWindow = new JTextArea();
-		chatWindow.setBackground(new Color(19, 38, 57));
+		chatWindow.setBackground(bgBlue);
 		chatWindow.setForeground(new Color(236, 242, 248));
-		chatWindow.setEditable(false);
 
-		add(new JScrollPane(chatWindow), BorderLayout.CENTER);
 		add(z, BorderLayout.SOUTH);
+		add(new JScrollPane(chatWindow), BorderLayout.CENTER);
 
-		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-		addWindowListener(new WindowDestroyer());
-		setBackground(new Color(51, 102, 153));
-		setSize(500, 600);
-		setBounds(150, 50, 500, 600);
+		setBounds(50, 50, 500, 600);
 		setVisible(true);
+		startRunning();
 	}
 
 	public void startRunning() {
@@ -158,11 +185,10 @@ public class Client extends JFrame {
 			e.printStackTrace();
 		} finally {
 			close();
-
 		}
 	}
 
-	private String encode(Chat c) {
+	private static String encode(Chat c) {
 		return c.source + "$" + c.destination + "$" + c.TTL + "$" + c.message;
 	}
 
@@ -171,8 +197,10 @@ public class Client extends JFrame {
 		try {
 			do {
 				String s = JOptionPane.showInputDialog("Choose a username");
+
 				if (s == null)
 					System.exit(0);
+
 				if (!valid(s)) {
 					showMessage("You can use only letters[A - Z].\n");
 					continue;
@@ -181,7 +209,7 @@ public class Client extends JFrame {
 				output.writeObject(s);
 				ob = (String) input.readObject();
 				showMessage(ob);
-			} while (!ob.equals("Username accepted!!"));
+			} while (!ob.equals("Username accepted !!\n"));
 		} catch (ClassNotFoundException | IOException e) {
 			e.printStackTrace();
 		}
@@ -197,8 +225,7 @@ public class Client extends JFrame {
 
 	private void connectToServer() throws IOException {
 		showMessage("Attempting connection...\n");
-		connection = new Socket(InetAddress.getByName(serverIP), port);
-		port = port == 6000 ? 6001 : 6000;
+		connection = new Socket(InetAddress.getByName(serverIP), toPort);
 		showMessage("Connected to " + connection.getInetAddress().getHostName() + "\n");
 	}
 
@@ -206,7 +233,8 @@ public class Client extends JFrame {
 		output = new ObjectOutputStream(connection.getOutputStream());
 		output.flush();
 		input = new ObjectInputStream(connection.getInputStream());
-		showMessage("Streams are now setup!\nPlease choose a username!\n");
+		showMessage("Streams are now setup!\n");
+		showMessage("Please choose a username!!\n");
 	}
 
 	private void whileChatting() throws IOException {
@@ -218,7 +246,6 @@ public class Client extends JFrame {
 				showMessage("There is a problem with the message\n");
 			}
 		while (true);
-
 	}
 
 	private void close() {
@@ -227,33 +254,37 @@ public class Client extends JFrame {
 			output.close();
 			input.close();
 			connection.close();
+			System.exit(0);
 		} catch (IOException e) {
 			e.printStackTrace();
-		} finally {
-			System.exit(0);
 		}
 	}
 
 	private void showMessage(final String message) {
 		SwingUtilities.invokeLater(new Runnable() {
-
 			public void run() {
 				chatWindow.append(message);
 			}
 		});
 	}
 
-	private void getMemberList(String cmd) {
+	private void getMemberList(String message) {
 		try {
-			String message = "$$$" + cmd;
 			output.writeObject(message);
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
 	}
-	
+
 	public static void main(String[] args) {
-		Client client = new Client("127.0.0.1" , 6000);
-		client.startRunning();
+		Scanner sc = new Scanner(System.in);
+		System.out.println("Enter port number");
+		int port = sc.nextInt();
+		sc.close();
+		// server1: 9001
+		// server2: 9000
+		// server3: 9002
+		// server4: 9003
+		new Client("127.0.0.1", port);
 	}
 }
